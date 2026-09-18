@@ -11,7 +11,7 @@ import {
   Server,
   Sparkles,
 } from "lucide-react";
-import { api } from "@/lib/api";
+import { api, API_BASE_URL } from "@/lib/api";
 import { HealthResponse } from "@/types/activity";
 
 export default function SettingsPage() {
@@ -98,7 +98,7 @@ export default function SettingsPage() {
               {isApiOk ? "Operational (200 OK)" : "Disconnected"}
             </div>
             <p className="text-[11px] text-slate-400 mt-1 truncate">
-              http://127.0.0.1:8000/api/v1
+              {API_BASE_URL}
             </p>
           </div>
 

@@ -7,8 +7,9 @@ import {
   HealthResponse,
 } from "@/types/activity";
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000/api/v1";
+export const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL ||
+  "https://lifefloww-ai.onrender.com/api/v1";
 
 export class ApiError extends Error {
   statusCode: number;
