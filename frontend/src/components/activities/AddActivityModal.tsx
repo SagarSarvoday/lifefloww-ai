@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   AlertCircle,
   Calendar,
@@ -38,6 +38,9 @@ export function AddActivityModal({
   const [parsedData, setParsedData] = useState<ActivityExtraction | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  // Stores text present before current voice session started
+  const baseTextAtSessionStartRef = useRef("");
+
   const {
     isSupported,
     isListening,
@@ -46,14 +49,23 @@ export function AddActivityModal({
     startListening,
     stopListening,
   } = useSpeechRecognition({
-    onResult: (spokenText) => {
-      setInputText((prev) => (prev ? `${prev} ${spokenText}` : spokenText));
+    onSessionFinal: (sessionTranscript) => {
+      const base = baseTextAtSessionStartRef.current.trim();
+      const speech = sessionTranscript.trim();
+      if (!base) {
+        setInputText(speech);
+      } else if (!speech) {
+        setInputText(base);
+      } else {
+        setInputText(`${base} ${speech}`);
+      }
     },
   });
 
   useEffect(() => {
     if (initialText) {
       setInputText(initialText);
+      baseTextAtSessionStartRef.current = initialText.trim();
     }
   }, [initialText]);
 
@@ -69,6 +81,8 @@ export function AddActivityModal({
     if (isListening) {
       stopListening();
     } else {
+      // Snapshot current input text as the base before starting this speech session
+      baseTextAtSessionStartRef.current = inputText.trim();
       startListening();
     }
   };
@@ -129,6 +143,7 @@ export function AddActivityModal({
       stopListening();
     }
     setInputText("");
+    baseTextAtSessionStartRef.current = "";
     setStep("input");
     setParsedData(null);
     setErrorMessage(null);
@@ -196,7 +211,10 @@ export function AddActivityModal({
                 <div className="relative">
                   <textarea
                     value={inputText}
-                    onChange={(e) => setInputText(e.target.value)}
+                    onChange={(e) => {
+                      setInputText(e.target.value);
+                      baseTextAtSessionStartRef.current = e.target.value.trim();
+                    }}
                     placeholder="e.g. Remind me to finish project report tomorrow at 5 PM for 2 hours..."
                     rows={4}
                     aria-label="Activity command text"
@@ -231,7 +249,10 @@ export function AddActivityModal({
                     <button
                       key={prompt}
                       type="button"
-                      onClick={() => setInputText(prompt)}
+                      onClick={() => {
+                        setInputText(prompt);
+                        baseTextAtSessionStartRef.current = prompt;
+                      }}
                       className="text-xs px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 hover:text-indigo-600 dark:hover:text-indigo-400 text-slate-600 dark:text-slate-300 transition text-left"
                     >
                       &ldquo;{prompt}&rdquo;

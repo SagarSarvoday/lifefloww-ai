@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { ArrowRight, Sparkles, Volume2 } from "lucide-react";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import { VoiceButton } from "@/components/voice/VoiceButton";
@@ -11,6 +11,8 @@ interface QuickAddProps {
 
 export function QuickAdd({ onQuickAdd }: QuickAddProps) {
   const [text, setText] = useState("");
+  // Stores whatever was in the input box when the current speech session began
+  const baseTextAtSessionStartRef = useRef("");
 
   const {
     isSupported,
@@ -20,8 +22,17 @@ export function QuickAdd({ onQuickAdd }: QuickAddProps) {
     startListening,
     stopListening,
   } = useSpeechRecognition({
-    onResult: (spokenText) => {
-      setText((prev) => (prev ? `${prev} ${spokenText}` : spokenText));
+    onSessionFinal: (sessionTranscript) => {
+      // Cleanly merge: base text prior to recording + the current session's transcript
+      const base = baseTextAtSessionStartRef.current.trim();
+      const speech = sessionTranscript.trim();
+      if (!base) {
+        setText(speech);
+      } else if (!speech) {
+        setText(base);
+      } else {
+        setText(`${base} ${speech}`);
+      }
     },
   });
 
@@ -29,6 +40,8 @@ export function QuickAdd({ onQuickAdd }: QuickAddProps) {
     if (isListening) {
       stopListening();
     } else {
+      // Snapshot current input box text as base before starting new speech session
+      baseTextAtSessionStartRef.current = text.trim();
       startListening();
     }
   };
@@ -42,6 +55,7 @@ export function QuickAdd({ onQuickAdd }: QuickAddProps) {
     if (!combinedText) return;
     onQuickAdd(combinedText);
     setText("");
+    baseTextAtSessionStartRef.current = "";
   };
 
   return (
@@ -68,7 +82,11 @@ export function QuickAdd({ onQuickAdd }: QuickAddProps) {
           <input
             type="text"
             value={text}
-            onChange={(e) => setText(e.target.value)}
+            onChange={(e) => {
+              setText(e.target.value);
+              // If user types manually while listening, update the base so speech appends to current text
+              baseTextAtSessionStartRef.current = e.target.value.trim();
+            }}
             placeholder='Try: "Study DSA tomorrow at 6 PM for 2 hours" or "Dentist at 10 AM on Friday"...'
             aria-label="Activity schedule command"
             className="w-full px-4 py-2.5 sm:py-3 text-xs sm:text-sm rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition shadow-inner shadow-slate-100 dark:shadow-none min-h-[44px]"
